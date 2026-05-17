@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Plane Vector Grid Explorer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column; /* Stack title, visualization, info */
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        #visContainer {
+            display: flex; /* Arrange canvas and controls side-by-side */
+            align-items: flex-start; /* Align tops */
+            gap: 30px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #ffffff;
+            display: block;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-top: 10px; /* Align controls slightly lower */
+            min-width: 250px; /* Give controls some space */
+        }
+        .control-item {
+            display: flex;
+            flex-direction: column; /* Stack label and input */
+            gap: 5px;
+        }
+        .control-group { /* Added for grouping controls */
+            border: 1px dashed #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Spacing within the group */
+        }
+        .control-item label, .checkbox-label, .group-label {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+        }
+         .group-label {
+             margin-bottom: 5px; /* Space below group title */
+             font-size: 0.95em;
+             color: #333;
+         }
+         .slider-label span {
+            font-weight: normal;
+            font-family: monospace;
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.95em;
+         }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button { /* Basic button styling */
+            padding: 5px 10px;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            transition: background-color 0.15s ease-in-out;
+            text-align: left; /* Align button text left */
+        }
+        button:hover {
+            background-color: #e2e6ea;
+        }
+        button.active { /* Style for the active button */
+             background-color: #d3d3d3;
+             font-weight: bold;
+             border-color: #bbb;
+        }
+
+        #infoDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            width: 600px; /* Match canvas approx width */
+            font-size: 0.95em;
+            min-height: 100px; /* Prevent resizing flicker */
+            box-sizing: border-box;
+        }
+         #infoDisplay p {
+            margin: 4px 0;
+            font-family: monospace;
+            white-space: pre; /* Preserve spacing */
+         }
+         #infoDisplay p strong {
+            display: inline-block;
+            min-width: 110px; /* Align labels */
+         }
+         #infoDisplay .placeholder {
+            color: #6c757d;
+            font-style: italic;
+         }
+
+    </style>
+</head>
+<body>
+
+    <h1>Complex Plane Vector Grid</h1>
+
+    <div id="visContainer">
+        <canvas id="complexCanvas" width="600" height="600"></canvas>
+
+        <div id="controls">
+            <div class="control-item">
+                <label for="rotationSlider" class="slider-label">Rotation Angle: <span id="rotationValue">0°</span></label>
+                <input type="range" id="rotationSlider" min="-180" max="180" value="0" step="1">
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="highlightGcdCheckbox">
+                <label for="highlightGcdCheckbox" class="checkbox-label">Highlight Visible (GCD=1)</label>
+            </div>
+
+            <div class="control-group">
+                <span class="group-label">Transformations:</span>
+                 <div class="checkbox-container">
+                    <input type="checkbox" id="scaleByGcdCheckbox">
+                    <label for="scaleByGcdCheckbox" class="checkbox-label">Scale Length by GCD</label>
+                 </div>
+                 <button id="fareyMapButton">Replace y by sgn(y)*|y/x| (Farey)</button>
+            </div>
+            </div>
+    </div>
+
+    <div id="infoDisplay">
+        <p class="placeholder">Hover over a vector endpoint for details...</p>
+        </div>
+
+
+<script>
+    const canvas = document.getElementById('complexCanvas');
+    const ctx = canvas.getContext('2d');
+    const rotationSlider = document.getElementById('rotationSlider');
+    const rotationValueSpan = document.getElementById('rotationValue');
+    const highlightGcdCheckbox = document.getElementById('highlightGcdCheckbox');
+    const scaleByGcdCheckbox = document.getElementById('scaleByGcdCheckbox');
+    const fareyMapButton = document.getElementById('fareyMapButton');
+    const infoDisplay = document.getElementById('infoDisplay');
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const originX = width / 2;
+    const originY = height / 2;
+
+    // --- Configuration ---
+    const minCoord = -12;
+    const maxCoord = 12;
+    const scale = Math.min(width, height) / ((maxCoord - minCoord) * 1.1) / 2; // Auto-scale
+    const defaultVectorColor = "#6c757d";
+    const highlightVectorColor = "#007bff";
+    const axisColor = "#dee2e6";
+    const headLength = 6;
+    const arrowLineWidth = 1;
+    const highlightArrowLineWidth = 1.5;
+    const axisLineWidth = 1;
+    const hoverRadius = 5;
+
+    // --- State ---
+    let currentRotationRad = 0;
+    let highlightGcd1 = false;
+    let scaleByGcdEnabled = false;
+    let fareyMapEnabled = false;
+    let gridPoints = [];
+    let needsRedraw = true;
+
+    // --- Helper Functions ---
+    function gcd(a, b) {
+        a = Math.abs(a);
+        b = Math.abs(b);
+        while(b) { let t = b; b = a % b; a = t; }
+        return a;
+    }
+
+    function mapX(logicalX) { return originX + logicalX * scale; }
+    function mapY(logicalY) { return originY - logicalY * scale; }
+
+    function drawAxes() {
+        ctx.beginPath();
+        ctx.strokeStyle = axisColor;
+        ctx.lineWidth = axisLineWidth;
+        ctx.moveTo(0, originY); ctx.lineTo(width, originY); // X-axis background line
+        ctx.moveTo(originX, 0); ctx.lineTo(originX, height); // Y-axis background line
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.fillStyle = "#dc3545"; // Red origin marker
+        ctx.arc(originX, originY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawArrow(fromX, fromY, toX, toY, color, lineWidth) {
+        // Prevent drawing arrows with zero or invalid length
+        if (isNaN(toX) || isNaN(toY) || !isFinite(toX) || !isFinite(toY) ||
+            (Math.abs(toX - fromX) < 0.1 && Math.abs(toY - fromY) < 0.1)) {
+             return;
+        }
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.moveTo(fromX, fromY); ctx.lineTo(toX, toY);
+        ctx.stroke();
+
+        const angle = Math.atan2(toY - fromY, toX - fromX);
+        // Prevent NaN angles for zero-length vectors if the initial check somehow fails
+        if (isNaN(angle)) return;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function formatNumber(num, precision = 2) {
+        // Avoid -0.0 display issues
+        if (Math.abs(num) < 1e-9) return (0).toFixed(precision);
+        return num.toFixed(precision);
+    }
+
+    // --- Main Drawing Function ---
+    function drawGridVectors() {
+        gridPoints = [];
+        ctx.clearRect(0, 0, width, height);
+        drawAxes(); // Keep drawing the background axes lines
+
+        const cosA = Math.cos(currentRotationRad); // Calculate rotation factors once
+        const sinA = Math.sin(currentRotationRad);
+
+        for (let x = minCoord; x <= maxCoord; x++) {
+            for (let y = minCoord; y <= maxCoord; y++) {
+                if (x === 0 && y === 0) continue; // Skip origin
+
+                const currentGcd = gcd(x, y); // Calculate GCD for all points (used for highlighting/info)
+                let finalLogicalX, finalLogicalY;
+
+                // *** Check if the point lies on the x-axis or y-axis ***
+                if (x === 0 || y === 0) {
+                    // AXIS POINT: Keep original position, ignore rotation and transformations
+                    finalLogicalX = x;
+                    finalLogicalY = y;
+                } else {
+                    // NON-AXIS POINT: Apply transformations and rotation as before
+                    if (scaleByGcdEnabled) {
+                        // Mode 1 (Plot 2): Scale Length by GCD
+                        const originalAngle = Math.atan2(y, x); // atan2 handles quadrants
+                        const finalAngle = originalAngle + currentRotationRad; // Angle after global rotation
+                        const effectiveMagnitude = currentGcd; // GCD is always positive
+                        finalLogicalX = effectiveMagnitude * Math.cos(finalAngle);
+                        finalLogicalY = effectiveMagnitude * Math.sin(finalAngle);
+                    } else {
+                        // Modes 2 (Farey) and Default (Plot 1): Determine pre-rotation point (lx, ly), then rotate
+                        let lx = x; // Default pre-rotation point is original (x,y)
+                        let ly = y;
+
+                        if (fareyMapEnabled) {
+                            // Mode 2 (Plot 3): Farey Map (y -> sgn(y)*|y/x|) adjusted for quadrant
+                            // x is guaranteed non-zero here due to the outer if/else
+                            ly = Math.sign(y) * Math.abs(y / x);
+                            // lx remains original x
+                        }
+                        // else: Default mode (Plot 1), lx=x, ly=y (already set)
+
+                        // Apply global rotation
+                        finalLogicalX = lx * cosA - ly * sinA;
+                        finalLogicalY = lx * sinA + ly * cosA;
+                    }
+                }
+                // *** END of axis check / transformation logic ***
+
+                // Map final logical coordinates to pixel coordinates
+                const endPx = mapX(finalLogicalX);
+                const endPy = mapY(finalLogicalY);
+
+                // Determine color and line width (based on ORIGINAL GCD)
+                // Highlighting applies to axis points too if their GCD is 1 (e.g., (1,0), (0,-1))
+                let color = defaultVectorColor;
+                let lineWidth = arrowLineWidth;
+                if (highlightGcd1) {
+                    if (currentGcd === 1) {
+                        color = highlightVectorColor;
+                        lineWidth = highlightArrowLineWidth;
+                    } else {
+                         color = "#f0f0f0"; // Fainter color for non-GCD=1 points when highlighting
+                    }
+                }
+
+                // Store point data (always uses original x, y for reference)
+                gridPoints.push({
+                    origX: x, origY: y,    // Original integer coordinates
+                    px: endPx, py: endPy,  // Final pixel coordinates of endpoint
+                    gcd: currentGcd        // Original GCD
+                });
+
+                // Draw the vector arrow
+                drawArrow(originX, originY, endPx, endPy, color, lineWidth);
+            }
+        }
+        needsRedraw = false;
+    }
+
+    // --- Hover and Info Update ---
+    function handleMouseMove(event) {
+        const rect = canvas.getBoundingClientRect();
+        const mousePx = event.clientX - rect.left;
+        const mousePy = event.clientY - rect.top;
+        let foundPoint = null;
+        let minDistSq = hoverRadius * hoverRadius;
+
+        // Iterate backwards to prioritize points drawn last (visually on top)
+        for (let i = gridPoints.length - 1; i >= 0; i--) {
+            const point = gridPoints[i];
+            // Skip if endpoint is not finite
+             if (!isFinite(point.px) || !isFinite(point.py)) continue;
+
+            const dx = mousePx - point.px;
+            const dy = mousePy - point.py;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < minDistSq) {
+                minDistSq = distSq;
+                foundPoint = point;
+            }
+        }
+        updateInfoDisplay(foundPoint);
+    }
+
+    // Update info display - always shows info about the ORIGINAL <x,y> vector
+    function updateInfoDisplay(pointData) {
+        if (pointData) {
+            const x = pointData.origX;
+            const y = pointData.origY;
+            const r = Math.sqrt(x * x + y * y); // Original magnitude
+            const thetaRad = Math.atan2(y, x); // Original angle
+            const thetaDeg = thetaRad * (180 / Math.PI);
+            const currentGcd = pointData.gcd;
+
+            const iyStr = (y < 0) ? `- i*${Math.abs(y)}` : `+ i*${y}`; // Use integer y
+
+            // Determine which mode is active for display
+            let modeInfo = '';
+            if (scaleByGcdEnabled) modeInfo = '<p><strong>Mode:</strong>       Scale Length by GCD</p>';
+            else if (fareyMapEnabled) modeInfo = '<p><strong>Mode:</strong>       Farey Map (y -> sgn(y)*|y/x|)</p>';
+
+            infoDisplay.innerHTML = `
+                <p><strong>Original:</strong>   ${x} ${iyStr}</p>
+                <p><strong>Polar (Orig):</strong> ${formatNumber(r)} ∠ ${formatNumber(thetaDeg, 1)}°</p>
+                <p><strong>Exp (Orig):</strong>   ${formatNumber(r)} * e^(i*${formatNumber(thetaRad)})</p>
+                <p><strong>GCD(|x|,|y|):</strong> ${currentGcd}</p>
+                ${modeInfo}
+            `;
+        } else {
+            infoDisplay.innerHTML = `<p class="placeholder">Hover over a vector endpoint for details...</p>`;
+        }
+    }
+
+    // --- Event Listeners ---
+    rotationSlider.addEventListener('input', (event) => {
+        const degrees = event.target.value;
+        currentRotationRad = degrees * (Math.PI / 180);
+        rotationValueSpan.textContent = `${degrees}°`;
+        needsRedraw = true;
+    });
+
+    highlightGcdCheckbox.addEventListener('change', (event) => {
+        highlightGcd1 = event.target.checked;
+        needsRedraw = true;
+    });
+
+    // Listener for the Scale by GCD checkbox
+    scaleByGcdCheckbox.addEventListener('change', (event) => {
+        scaleByGcdEnabled = event.target.checked;
+        if (scaleByGcdEnabled) {
+            // Disable other modes
+            fareyMapEnabled = false;
+            // Update other UI
+            fareyMapButton.classList.remove('active');
+        }
+        needsRedraw = true;
+    });
+
+    // Listener for the Farey Map button
+    fareyMapButton.addEventListener('click', () => {
+        fareyMapEnabled = !fareyMapEnabled; // Toggle state
+        if (fareyMapEnabled) {
+            // Disable other modes
+            scaleByGcdEnabled = false;
+            // Update other UI
+            scaleByGcdCheckbox.checked = false;
+            // Set self active
+            fareyMapButton.classList.add('active');
+        } else {
+            fareyMapButton.classList.remove('active');
+        }
+        needsRedraw = true;
+    });
+
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', () => { updateInfoDisplay(null); });
+
+    // --- Animation Loop ---
+    function animationLoop() {
+        if (needsRedraw) {
+            drawGridVectors();
+        }
+        requestAnimationFrame(animationLoop);
+    }
+
+    // --- Initialization ---
+    animationLoop();
+
+</script>
+
+</body>
+</html>

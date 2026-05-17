@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>𝔻 vs ℂ — Shape Transformations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f1e9d8; --bg-2:#ebe2cd; --ink:#181613; --muted:#7d756a;
+    --rule:#cfc3a8; --q1:#b13b2a; --q2:#c79235; --q3:#4f7a4a; --q4:#34557d; --accent:#7a3b1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink)}
+  body{
+    font-family:'EB Garamond',Georgia,serif;
+    font-size:18px;line-height:1.45;
+    padding:1.5rem 2rem 2rem;
+    max-width:1200px;
+    margin:0 auto;
+    background-image:
+      radial-gradient(circle at 15% 20%,rgba(122,59,31,.05),transparent 50%),
+      radial-gradient(circle at 85% 80%,rgba(52,85,125,.05),transparent 50%);
+    min-height:100vh;
+  }
+  header{
+    border-bottom:1px solid var(--rule);padding-bottom:1rem;margin-bottom:2rem;
+    display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;
+  }
+  header h1{font-weight:500;font-size:2rem;font-style:italic}
+  header h1 .t{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:1.4rem;color:var(--accent);margin-left:.5rem}
+  header .sub{color:var(--muted);font-size:.95rem;font-style:italic}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem}
+  .panel{
+    background:var(--bg-2);border:1px solid var(--rule);padding:1.25rem;
+    display:flex;flex-direction:column;
+    box-shadow:0 1px 0 rgba(0,0,0,.03),0 8px 24px -12px rgba(24,22,19,.15);
+  }
+  .panel h2{
+    font-family:'JetBrains Mono',monospace;font-size:1.7rem;font-weight:500;letter-spacing:.02em;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:1px solid var(--rule);padding-bottom:.5rem;margin-bottom:.4rem;
+  }
+  .panel h2 .name{font-family:'EB Garamond',serif;font-size:.9rem;font-style:italic;color:var(--muted);font-weight:400}
+  .stage{background:#faf6eb;border:1px solid var(--rule);aspect-ratio:1/1;width:100%;max-height:clamp(260px,42vh,480px)}
+  .stage svg{width:100%;height:100%;display:block}
+  .readout{margin-top:.7rem;font-size:.9rem;color:var(--ink);min-height:2.8em}
+  .readout .lab{color:var(--muted);font-style:italic;font-size:.82em;letter-spacing:.02em;text-transform:uppercase;display:block;margin-bottom:.15em}
+  .readout .val{font-family:'JetBrains Mono',monospace;font-size:.84em}
+  .readout .note{color:var(--accent);font-style:italic;margin-top:.2em;font-size:.88em}
+  .axis{stroke:#bba886;stroke-width:1}
+  .grid-line{stroke:#e3d7b8;stroke-width:.5}
+  .qfill{opacity:.07}
+  .qlabel{font-family:'EB Garamond',serif;font-style:italic;font-size:14px;fill:var(--muted)}
+  .ctrl{
+    border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+    padding:1.2rem 0;display:grid;grid-template-columns:auto 1fr auto;
+    gap:1.5rem;align-items:start;
+  }
+  .ops-block{display:flex;flex-direction:column;gap:.4rem}
+  .ops-row{display:flex;flex-wrap:wrap;gap:.5rem}
+  .ops-section-label{font-size:.75rem;color:var(--muted);font-style:italic;letter-spacing:.06em;text-transform:uppercase;margin-top:.3rem}
+  button{
+    font-family:'EB Garamond',serif;font-size:1rem;font-style:italic;
+    background:transparent;color:var(--ink);border:1px solid var(--ink);
+    padding:.4rem .9rem;cursor:pointer;transition:background .12s,color .12s;
+  }
+  button:hover{background:var(--ink);color:var(--bg)}
+  button.ghost{border-style:dashed;color:var(--muted);border-color:var(--muted)}
+  button.ghost:hover{background:var(--muted);color:var(--bg)}
+  button.shape-btn{border-color:var(--muted);color:var(--muted);font-size:.9rem;padding:.3rem .7rem}
+  button.shape-btn.active{border-color:var(--accent);color:var(--accent);border-style:solid}
+  .point-input{display:flex;align-items:center;gap:.5rem;font-style:italic;color:var(--muted)}
+  .point-input input{
+    font-family:'JetBrains Mono',monospace;font-size:.95rem;
+    width:4.5rem;padding:.3rem .5rem;
+    border:1px solid var(--rule);background:#faf6eb;color:var(--ink);text-align:center;
+  }
+  .input-key{color:var(--ink);font-weight:500;font-style:normal;min-width:1.4rem;font-family:'JetBrains Mono',monospace;font-size:.9rem}
+  .locks{display:flex;flex-direction:column;gap:.4rem;font-size:.9rem;border-left:3px solid var(--accent);padding-left:1rem;margin-top:.8rem}
+  .locks label{display:flex;align-items:center;gap:.5rem;cursor:pointer;color:var(--ink);padding:3px 7px;transition:background .12s}
+  .locks label:hover{background:rgba(122,59,31,.08)}
+  .commentary{
+    margin-top:1.5rem;padding:1rem 1.2rem;border-left:3px solid var(--accent);
+    background:rgba(122,59,31,.04);font-style:italic;font-size:1rem;color:var(--ink);
+    min-height:3em;line-height:1.6;
+  }
+  .commentary .h{
+    font-style:normal;font-family:'JetBrains Mono',monospace;font-size:.75rem;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.3em;
+  }
+  footer{margin-top:2rem;color:var(--muted);font-size:.85rem;font-style:italic;text-align:center;border-top:1px solid var(--rule);padding-top:1rem}
+  #wLabel,#sLabel{font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>𝔻 vs ℂ <span class="t">shape transformations</span></h1>
+    <div class="sub">Same operation · different rules · 𝔻 segments coloured by quadrant</div>
+  </div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted)">v1</div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2><span>𝔻</span><span class="name">directional — quadrant locked</span></h2>
+    <div class="stage"><svg viewBox="-200 -200 400 400" id="svgD"></svg></div>
+    <div class="readout">
+      <span class="lab">quadrant distribution</span>
+      <span class="val" id="dVal">—</span>
+      <div class="note" id="dNote"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2><span>ℂ</span><span class="name">complex — free rotation</span></h2>
+    <div class="stage"><svg viewBox="-200 -200 400 400" id="svgC"></svg></div>
+    <div class="readout">
+      <span class="lab">extent</span>
+      <span class="val" id="cVal">—</span>
+      <div class="note" id="cNote"></div>
+    </div>
+  </section>
+</main>
+
+<div class="ctrl">
+  <!-- Inputs -->
+  <div style="display:flex;flex-direction:column;gap:.7rem">
+    <div class="point-input">
+      <span class="input-key">w =</span><span>(</span>
+      <input type="number" id="wX" value="1" step="0.5">
+      <span>,</span>
+      <input type="number" id="wY" value="1" step="0.5">
+      <span>)</span>
+    </div>
+    <div class="point-input">
+      <span class="input-key">s =</span>
+      <input type="number" id="sVal" value="2" step="0.5">
+    </div>
+    <div style="font-size:.8rem;color:var(--muted);font-style:italic">w two-part · s scalar</div>
+    <div style="margin-top:.4rem;font-size:.85rem;color:var(--muted);font-style:italic">shape:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+      <button class="shape-btn active" data-shape="circle-1">○ r=1</button>
+      <button class="shape-btn" data-shape="circle-2">○ r=2</button>
+      <button class="shape-btn" data-shape="square-1">□ r=1</button>
+      <button class="shape-btn" data-shape="square-2">□ r=2</button>
+    </div>
+  </div>
+
+  <!-- Operations -->
+  <div class="ops-block">
+    <div class="ops-section-label">intrinsic</div>
+    <div class="ops-row">
+      <button data-op="square">z²</button>
+      <button data-op="sqrt">√z</button>
+      <button data-op="rotate">Rot<sub>π/4</sub></button>
+      <button data-op="fold">Fold<sub>x-axis</sub></button>
+    </div>
+    <div class="ops-section-label" style="margin-top:.5rem">with w = (<span id="wLabel">1, 1</span>)</div>
+    <div class="ops-row">
+      <button data-op="addw">z + w</button>
+      <button data-op="subw">z − w</button>
+      <button data-op="mulw">z × w</button>
+      <button data-op="divw">z ÷ w</button>
+    </div>
+    <div class="ops-section-label" style="margin-top:.5rem">with s = <span id="sLabel">2</span></div>
+    <div class="ops-row">
+      <button data-op="adds">z + s</button>
+      <button data-op="subs">z − s</button>
+      <button data-op="muls">z × s</button>
+      <button data-op="divs">z ÷ s</button>
+    </div>
+    <div class="ops-row" style="margin-top:.5rem">
+      <button class="ghost" data-op="reset">reset</button>
+    </div>
+  </div>
+
+  <!-- Locks -->
+  <div>
+    <div style="font-size:.9rem;line-height:1.8;margin-bottom:.5rem">
+      <span style="color:var(--q2)">■</span> Q₂ &nbsp;
+      <span style="color:var(--q1)">■</span> Q₁<br>
+      <span style="color:var(--q3)">■</span> Q₃ &nbsp;
+      <span style="color:var(--q4)">■</span> Q₄
+    </div>
+    <div class="locks">
+      <label><input type="checkbox" id="lockRot" checked> Forbidden Rotation</label>
+      <label><input type="checkbox" id="lockFold" checked> Forbidden Folding</label>
+      <label><input type="checkbox" id="lockOrigin" checked> Forbidden Origin Crossing</label>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem;padding:0 7px">All locks OFF → 𝔻 = ℂ</div>
+    </div>
+  </div>
+</div>
+
+<div class="commentary" id="commentary">
+  <span class="h">commentary</span>
+  Shape segments are coloured by quadrant in 𝔻 — the colours make quadrant crossings visible.<br>
+  The faint outline is the original shape for reference. Apply operations to compare how each system transforms the same shape.
+</div>
+
+<footer>𝔻 vs ℂ — same operation applied to both · locked 𝔻 preserves quadrant colour per segment</footer>
+
+<script>
+(() => {
+  const SCALE = 72;
+  const Q_COLORS = {1:'#b13b2a', 2:'#c79235', 3:'#4f7a4a', 4:'#34557d'};
+  const N = 120;   // points per shape
+
+  // ── Shape generators ───────────────────────────────────────────────────────
+  function makeCircle(r) {
+    return Array.from({length:N}, (_,i) => {
+      const t = 2*Math.PI*i/N;
+      return {x: r*Math.cos(t), y: r*Math.sin(t)};
+    });
+  }
+
+  function makeSquare(r) {
+    const side = N/4|0;
+    const pts = [];
+    for (let i=0;i<side;i++) pts.push({x:  r, y: -r + 2*r*i/side});
+    for (let i=0;i<side;i++) pts.push({x:  r - 2*r*i/side, y:  r});
+    for (let i=0;i<side;i++) pts.push({x: -r, y:  r - 2*r*i/side});
+    for (let i=0;i<side;i++) pts.push({x: -r + 2*r*i/side, y: -r});
+    return pts;
+  }
+
+  const SHAPES = {
+    'circle-1': makeCircle(1),
+    'circle-2': makeCircle(2),
+    'square-1': makeSquare(1),
+    'square-2': makeSquare(2),
+  };
+
+  function clone(s) { return s.map(p => ({...p})); }
+
+  const state = {
+    shapeD:   clone(SHAPES['circle-1']),
+    shapeC:   clone(SHAPES['circle-1']),
+    orig:     clone(SHAPES['circle-1']),
+    busy:     false,
+    animFrame: null,
+  };
+
+  // ── Math helpers ───────────────────────────────────────────────────────────
+  function quadrant(p) {
+    if (p.x>0&&p.y>0) return 1;
+    if (p.x<0&&p.y>0) return 2;
+    if (p.x<0&&p.y<0) return 3;
+    if (p.x>0&&p.y<0) return 4;
+    return 0;
+  }
+
+  function fmt(v,dp=2) {
+    if (!isFinite(v)) return '·';
+    if (Math.abs(v-Math.round(v))<1e-9) return Math.round(v).toString();
+    return v.toFixed(dp).replace(/\.?0+$/,'');
+  }
+
+  function cMul(a,b) { return {x:a.x*b.x-a.y*b.y, y:a.x*b.y+a.y*b.x}; }
+  function cDiv(a,b) {
+    const d=b.x*b.x+b.y*b.y;
+    return {x:(a.x*b.x+a.y*b.y)/d, y:(a.y*b.x-a.x*b.y)/d};
+  }
+  function cSqrt(p) {
+    const r=Math.hypot(p.x,p.y), th=Math.atan2(p.y,p.x);
+    const sr=Math.sqrt(Math.max(r,1e-14));
+    return {x:sr*Math.cos(th/2), y:sr*Math.sin(th/2)};
+  }
+
+  // ── SVG setup ──────────────────────────────────────────────────────────────
+  function setupSvg(svg, kind) {
+    svg.innerHTML='';
+    const NS='http://www.w3.org/2000/svg';
+
+    // grid (show ±1, ±2 units)
+    const g=document.createElementNS(NS,'g');
+    for (let i=-2;i<=2;i++) {
+      if (i===0) continue;
+      const v=i*SCALE;
+      const lv=document.createElementNS(NS,'line');
+      lv.setAttribute('x1',v);lv.setAttribute('y1',-200);lv.setAttribute('x2',v);lv.setAttribute('y2',200);
+      lv.setAttribute('class','grid-line');g.appendChild(lv);
+      const lh=document.createElementNS(NS,'line');
+      lh.setAttribute('x1',-200);lh.setAttribute('y1',v);lh.setAttribute('x2',200);lh.setAttribute('y2',v);
+      lh.setAttribute('class','grid-line');g.appendChild(lh);
+    }
+    svg.appendChild(g);
+
+    // quadrant fills
+    [{q:1,x:0,y:-200},{q:2,x:-200,y:-200},{q:3,x:-200,y:0},{q:4,x:0,y:0}].forEach(({q,x,y})=>{
+      const r=document.createElementNS(NS,'rect');
+      r.setAttribute('x',x);r.setAttribute('y',y);
+      r.setAttribute('width',200);r.setAttribute('height',200);
+      r.setAttribute('fill',Q_COLORS[q]);r.setAttribute('class','qfill');
+      svg.appendChild(r);
+    });
+
+    // axes
+    const ax1=document.createElementNS(NS,'line');
+    ax1.setAttribute('x1',-200);ax1.setAttribute('y1',0);ax1.setAttribute('x2',200);ax1.setAttribute('y2',0);
+    ax1.setAttribute('class','axis');svg.appendChild(ax1);
+    const ax2=document.createElementNS(NS,'line');
+    ax2.setAttribute('x1',0);ax2.setAttribute('y1',-200);ax2.setAttribute('x2',0);ax2.setAttribute('y2',200);
+    ax2.setAttribute('class','axis');svg.appendChild(ax2);
+
+    // tick labels
+    for (let v=-2;v<=2;v++) {
+      if (v===0) continue;
+      const tx=document.createElementNS(NS,'text');
+      tx.setAttribute('x',v*SCALE);tx.setAttribute('y',14);
+      tx.setAttribute('text-anchor','middle');
+      tx.setAttribute('font-family','JetBrains Mono,monospace');
+      tx.setAttribute('font-size','9');tx.setAttribute('fill','#8a8378');
+      tx.textContent=v;svg.appendChild(tx);
+      const ty=document.createElementNS(NS,'text');
+      ty.setAttribute('x',-12);ty.setAttribute('y',-v*SCALE+4);
+      ty.setAttribute('text-anchor','end');
+      ty.setAttribute('font-family','JetBrains Mono,monospace');
+      ty.setAttribute('font-size','9');ty.setAttribute('fill','#8a8378');
+      ty.textContent=v;svg.appendChild(ty);
+    }
+
+    // Q labels in D panel only
+    if (kind==='D') {
+      [{q:1,x:150,y:-150},{q:2,x:-150,y:-150},{q:3,x:-150,y:150},{q:4,x:150,y:150}].forEach(({q,x,y})=>{
+        const t=document.createElementNS(NS,'text');
+        t.setAttribute('x',x);t.setAttribute('y',y);
+        t.setAttribute('text-anchor','middle');t.setAttribute('class','qlabel');
+        t.textContent='Q'+'₁₂₃₄'[q-1];svg.appendChild(t);
+      });
+    }
+
+    const dyn=document.createElementNS(NS,'g');
+    dyn.setAttribute('id','dyn-'+kind);
+    svg.appendChild(dyn);
+  }
+
+  function clearDyn(kind) {
+    const d=document.getElementById('dyn-'+kind);
+    if (d) d.innerHTML='';
+  }
+
+  // ── Shape rendering ────────────────────────────────────────────────────────
+  // D: each segment coloured by its start-point's quadrant
+  function drawD(pts, ghost=false) {
+    const NS='http://www.w3.org/2000/svg';
+    const dyn=document.getElementById('dyn-D');
+    const n=pts.length;
+    for (let i=0;i<n;i++) {
+      const p1=pts[i], p2=pts[(i+1)%n];
+      const q=quadrant(p1);
+      const color=ghost?'#8a8378':(Q_COLORS[q]||'#888');
+      const ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',p1.x*SCALE); ln.setAttribute('y1',-p1.y*SCALE);
+      ln.setAttribute('x2',p2.x*SCALE); ln.setAttribute('y2',-p2.y*SCALE);
+      ln.setAttribute('stroke',color);
+      ln.setAttribute('stroke-width',ghost?'1':'2.5');
+      ln.setAttribute('opacity',ghost?'0.22':'1');
+      dyn.appendChild(ln);
+    }
+  }
+
+  // C: single closed path
+  function drawC(pts, ghost=false) {
+    const NS='http://www.w3.org/2000/svg';
+    const dyn=document.getElementById('dyn-C');
+    if (!pts.length) return;
+    let d='';
+    pts.forEach((p,i)=>{ d+=(i===0?'M':'L')+(p.x*SCALE)+','+(-p.y*SCALE)+' '; });
+    d+='Z';
+    const path=document.createElementNS(NS,'path');
+    path.setAttribute('d',d);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke',ghost?'#8a8378':'#181613');
+    path.setAttribute('stroke-width',ghost?'1':'2.5');
+    path.setAttribute('opacity',ghost?'0.22':'1');
+    dyn.appendChild(path);
+  }
+
+  // ── Readouts ───────────────────────────────────────────────────────────────
+  function updateReadouts() {
+    const counts={1:0,2:0,3:0,4:0,0:0};
+    state.shapeD.forEach(p=>counts[quadrant(p)]++);
+    const total=state.shapeD.length;
+    const parts=[];
+    [1,2,3,4].forEach(q=>{
+      if (counts[q]>0) {
+        const pct=Math.round(100*counts[q]/total);
+        parts.push(`<span style="color:${Q_COLORS[q]}">Q${'₁₂₃₄'[q-1]} ${pct}%</span>`);
+      }
+    });
+    document.getElementById('dVal').innerHTML=parts.join('  ')||'—';
+    document.getElementById('dNote').textContent=counts[0]>0?`${counts[0]} point(s) on an axis`:'';
+
+    const xs=state.shapeC.map(p=>p.x), ys=state.shapeC.map(p=>p.y);
+    const rs=state.shapeC.map(p=>Math.hypot(p.x,p.y));
+    document.getElementById('cVal').textContent=
+      `x [${fmt(Math.min(...xs))}, ${fmt(Math.max(...xs))}]  `+
+      `y [${fmt(Math.min(...ys))}, ${fmt(Math.max(...ys))}]`;
+    document.getElementById('cNote').textContent=
+      `|z| ∈ [${fmt(Math.min(...rs))}, ${fmt(Math.max(...rs))}]`;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function render() {
+    clearDyn('D'); clearDyn('C');
+    drawD(state.orig, true);
+    drawC(state.orig, true);
+    drawD(state.shapeD, false);
+    drawC(state.shapeC, false);
+    updateReadouts();
+  }
+
+  // ── Operations (pointwise) ─────────────────────────────────────────────────
+  function applyD(pts, op, w, s, locks) {
+    const {lockRot, lockFold, unrest} = locks;
+    return pts.map(p => {
+      const r = Math.hypot(p.x, p.y) || 1e-14;
+      if (op==='square')  return unrest ? {x:p.x*p.x-p.y*p.y,y:2*p.x*p.y} : {x:p.x*r, y:p.y*r};
+      if (op==='sqrt')    { const sr=Math.sqrt(r); return unrest ? cSqrt(p) : {x:p.x/sr, y:p.y/sr}; }
+      if (op==='rotate')  { if (lockRot) return {...p}; const a=Math.PI/4,c=Math.cos(a),ss=Math.sin(a); return {x:p.x*c-p.y*ss,y:p.x*ss+p.y*c}; }
+      if (op==='fold')    return lockFold ? {...p} : {x:p.x, y:-p.y};
+      if (op==='addw')    return {x:p.x+w.x, y:p.y+w.y};
+      if (op==='subw')    return {x:p.x-w.x, y:p.y-w.y};
+      if (op==='mulw')    { const wm=Math.hypot(w.x,w.y); return unrest ? cMul(p,w) : {x:p.x*wm,y:p.y*wm}; }
+      if (op==='divw')    { const wm=Math.hypot(w.x,w.y); if (wm<1e-9) return {...p}; return unrest ? cDiv(p,w) : {x:p.x/wm,y:p.y/wm}; }
+      if (op==='adds')    return {x:p.x+s, y:p.y};
+      if (op==='subs')    return {x:p.x-s, y:p.y};
+      if (op==='muls')    { const sd=unrest?s:Math.abs(s); return {x:p.x*sd,y:p.y*sd}; }
+      if (op==='divs')    { if (Math.abs(s)<1e-9) return {...p}; const sd=unrest?s:Math.abs(s); return {x:p.x/sd,y:p.y/sd}; }
+      return {...p};
+    });
+  }
+
+  function applyC(pts, op, w, s) {
+    return pts.map(p => {
+      if (op==='square')  return {x:p.x*p.x-p.y*p.y, y:2*p.x*p.y};
+      if (op==='sqrt')    return cSqrt(p);
+      if (op==='rotate')  { const a=Math.PI/4,c=Math.cos(a),ss=Math.sin(a); return {x:p.x*c-p.y*ss,y:p.x*ss+p.y*c}; }
+      if (op==='fold')    return {x:p.x, y:-p.y};
+      if (op==='addw')    return {x:p.x+w.x, y:p.y+w.y};
+      if (op==='subw')    return {x:p.x-w.x, y:p.y-w.y};
+      if (op==='mulw')    return cMul(p,w);
+      if (op==='divw')    { const wm=Math.hypot(w.x,w.y); if (wm<1e-9) return {...p}; return cDiv(p,w); }
+      if (op==='adds')    return {x:p.x+s, y:p.y};
+      if (op==='subs')    return {x:p.x-s, y:p.y};
+      if (op==='muls')    return {x:p.x*s, y:p.y*s};
+      if (op==='divs')    { if (Math.abs(s)<1e-9) return {...p}; return {x:p.x/s,y:p.y/s}; }
+      return {...p};
+    });
+  }
+
+  // ── Animation ──────────────────────────────────────────────────────────────
+  function cancelAnim() {
+    if (state.animFrame) { cancelAnimationFrame(state.animFrame); state.animFrame=null; state.busy=false; }
+  }
+
+  function animate(fromD, toD, fromC, toC, cb) {
+    cancelAnim();
+    state.busy=true;
+    const dur=700, t0=performance.now();
+    function step(now) {
+      const t=Math.min(1,(now-t0)/dur);
+      const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      state.shapeD=fromD.map((p,i)=>({x:p.x+(toD[i].x-p.x)*e, y:p.y+(toD[i].y-p.y)*e}));
+      state.shapeC=fromC.map((p,i)=>({x:p.x+(toC[i].x-p.x)*e, y:p.y+(toC[i].y-p.y)*e}));
+      render();
+      if (t<1) state.animFrame=requestAnimationFrame(step);
+      else { state.busy=false; state.animFrame=null; if (cb) cb(); }
+    }
+    state.animFrame=requestAnimationFrame(step);
+  }
+
+  // ── Commentary ─────────────────────────────────────────────────────────────
+  function setCommentary(html) {
+    document.getElementById('commentary').innerHTML='<span class="h">commentary</span>'+html;
+  }
+
+  function makeNote(op, w, s, locks) {
+    const {lockRot, lockFold, unrest} = locks;
+    const wm=Math.hypot(w.x,w.y);
+    const wArg=fmt(Math.atan2(w.y,w.x)*180/Math.PI,1);
+    if (op==='square')
+      return `<b>z²</b><br>`
+        +`𝔻 locked: each point scales by its own magnitude (|z|→|z|²), direction is preserved — quadrant colours stay fixed.<br>`
+        +`ℂ: magnitude squares <em>and</em> argument doubles. Points that were symmetric across an axis are no longer — the shape may fold over itself.`;
+    if (op==='sqrt')
+      return `<b>√z</b><br>`
+        +`𝔻 locked: magnitude → √|z|, direction unchanged. Each quadrant arc shrinks toward the unit circle independently. No branch cut needed.<br>`
+        +`ℂ: argument is halved. A full circle (angles 0→2π) maps to a semicircle (0→π) — the lower half folds onto the upper. This is the branch cut in action.`;
+    if (op==='rotate')
+      return `<b>Rot<sub>π/4</sub></b><br>`
+        +(lockRot
+          ?`𝔻 locked: rotation forbidden — shape unchanged. The quadrant colouring cannot be mixed by default.<br>`
+          +`ℂ: entire shape rotated +45°. The Q1 arc (red) moves into Q2 territory — in ℂ this is silent; in 𝔻 it would require an explicit declaration.`
+          :`𝔻 unlocked: explicit rotation applied. Quadrant boundaries are crossed, segment colours shift.<br>`
+          +`ℂ: identical rotation.`);
+    if (op==='fold')
+      return `<b>Fold<sub>x-axis</sub></b><br>`
+        +(lockFold
+          ?`𝔻 locked: fold forbidden — shape unchanged.<br>`
+          +`ℂ: shape reflected across the x-axis (conjugate). Every point in Q1 moves to Q4 and vice versa — silently in ℂ, requires explicit permission in 𝔻.`
+          :`𝔻 unlocked: explicit fold applied. Segments cross the x-axis and change quadrant colour.<br>`
+          +`ℂ: identical reflection.`);
+    if (op==='addw'||op==='subw') {
+      const sym=op==='addw'?'+':'−';
+      return `<b>z ${sym} w</b>, w = (${fmt(w.x)}, ${fmt(w.y)})<br>`
+        +`Translation: the shape shifts rigidly by ±w in both systems — addition is not rotation-sensitive.<br>`
+        +`In 𝔻, watch for segments crossing an axis: they change colour as they enter a new quadrant.`;
+    }
+    if (op==='mulw')
+      return `<b>z × w</b>, w = (${fmt(w.x)}, ${fmt(w.y)}), |w| = ${fmt(wm)}, arg(w) = ${wArg}°<br>`
+        +(unrest
+          ?`𝔻 unlocked = ℂ: shape scaled by ${fmt(wm)} and rotated ${wArg}°.`
+          :`𝔻 locked: every point scaled by |w| = ${fmt(wm)}, direction preserved. The shape grows or shrinks uniformly — no rotation.<br>`
+          +`ℂ: scale by ${fmt(wm)} <em>and</em> rotate by ${wArg}°. The two panels diverge whenever arg(w) ≠ 0.`);
+    if (op==='divw')
+      return `<b>z ÷ w</b>, |w| = ${fmt(wm)}, arg(w) = ${wArg}°<br>`
+        +(unrest
+          ?`𝔻 unlocked = ℂ.`
+          :`𝔻 locked: every point divided by |w| — uniform shrink, no rotation.<br>`
+          +`ℂ: divide by |w| and rotate by −${wArg}°.`);
+    if (op==='adds'||op==='subs') {
+      const sym=op==='adds'?'+':'−';
+      return `<b>z ${sym} s</b>, s = ${fmt(s)}<br>`
+        +`Horizontal shift by ${sym}${fmt(s)}. Identical in both systems.<br>`
+        +`In 𝔻, segments that cross the y-axis change colour — the quadrant boundary is a visible event.`;
+    }
+    if (op==='muls')
+      return `<b>z × s</b>, s = ${fmt(s)}<br>`
+        +(s<0
+          ?`𝔻 locked: uses |s| = ${fmt(Math.abs(s))} — negative scalar would flip sign pattern (quadrant violation), so magnitude only.<br>`
+          +`ℂ: multiplies by ${fmt(s)}, which is equivalent to scaling by ${fmt(Math.abs(s))} and rotating 180°. The shape flips through the origin.`
+          :`Uniform scaling by ${fmt(s)} in both systems (positive s, no rotation in either).`);
+    if (op==='divs')
+      return `<b>z ÷ s</b>, s = ${fmt(s)}<br>`
+        +(s<0
+          ?`𝔻 locked: uses |s| — negative scalar avoided.<br>`
+          +`ℂ: divides by ${fmt(s)}, including a 180° flip.`
+          :`Uniform shrink by 1/${fmt(s)} in both systems.`);
+    return '';
+  }
+
+  // ── Main doOp ──────────────────────────────────────────────────────────────
+  function doOp(op) {
+    cancelAnim();
+    const w={x:parseFloat(document.getElementById('wX').value)||0, y:parseFloat(document.getElementById('wY').value)||0};
+    const s=parseFloat(document.getElementById('sVal').value)||0;
+    const lockRot=document.getElementById('lockRot').checked;
+    const lockFold=document.getElementById('lockFold').checked;
+    const lockOrigin=document.getElementById('lockOrigin').checked;
+    const unrest=!lockRot&&!lockFold&&!lockOrigin;
+    const locks={lockRot,lockFold,unrest};
+
+    if (op==='reset') {
+      const r=clone(state.orig);
+      animate(state.shapeD,r,state.shapeC,clone(state.orig),()=>{
+        state.shapeD=clone(state.orig); state.shapeC=clone(state.orig); render();
+      });
+      setCommentary('Reset to original shape.');
+      return;
+    }
+
+    const fromD=clone(state.shapeD), fromC=clone(state.shapeC);
+    const toD=applyD(fromD,op,w,s,locks);
+    const toC=applyC(fromC,op,w,s);
+    setCommentary(makeNote(op,w,s,locks));
+    animate(fromD,toD,fromC,toC,()=>{ state.shapeD=toD; state.shapeC=toC; render(); });
+  }
+
+  // ── Shape selection ────────────────────────────────────────────────────────
+  function setShape(key) {
+    cancelAnim();
+    const s=clone(SHAPES[key]);
+    state.shapeD=clone(s); state.shapeC=clone(s); state.orig=clone(s);
+    render();
+    setCommentary(`Shape: <b>${key}</b>. Faint outline shows this as the reference original.`);
+    document.querySelectorAll('[data-shape]').forEach(b=>b.classList.toggle('active',b.dataset.shape===key));
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  function init() {
+    setupSvg(document.getElementById('svgD'),'D');
+    setupSvg(document.getElementById('svgC'),'C');
+    render();
+
+    document.querySelectorAll('button[data-op]').forEach(b=>b.addEventListener('click',()=>doOp(b.dataset.op)));
+    document.querySelectorAll('[data-shape]').forEach(b=>b.addEventListener('click',()=>setShape(b.dataset.shape)));
+
+    function updW() {
+      const wx=parseFloat(document.getElementById('wX').value)||0;
+      const wy=parseFloat(document.getElementById('wY').value)||0;
+      document.getElementById('wLabel').textContent=`${fmt(wx)}, ${fmt(wy)}`;
+    }
+    document.getElementById('wX').addEventListener('input',updW);
+    document.getElementById('wY').addEventListener('input',updW);
+    updW();
+
+    function updS() { document.getElementById('sLabel').textContent=fmt(parseFloat(document.getElementById('sVal').value)||0); }
+    document.getElementById('sVal').addEventListener('input',updS);
+    updS();
+
+    ['lockRot','lockFold','lockOrigin'].forEach(id=>
+      document.getElementById(id).addEventListener('change',()=>{if(!state.busy)render();})
+    );
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

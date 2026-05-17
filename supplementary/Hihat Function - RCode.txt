@@ -1,0 +1,73 @@
+#### Thomae Function
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse,rgl,viridis)
+
+## INF.OMIT
+# Remove rows with infinite values (Vector/Matrix/DF safe)
+inf.omit <- function(x) {
+  if (is.vector(x)) {
+    x[is.finite(x)]
+  } else if (is.matrix(x) || is.data.frame(x)) {
+    # Optimized: rowSums is much faster than apply
+    # Only works on numeric cols; fallback to apply if mixed types exist
+    tryCatch(
+      x[is.finite(rowSums(x)), , drop = FALSE],
+      error = function(e) x[!apply(is.infinite(as.matrix(x)), 1, any), ]
+    )
+  } else {
+    stop("Input must be vector, matrix, or data.frame")
+  }
+}
+
+
+v <- c(-50:50)			        ## Define vector v.
+co <- expand.grid(v,v)			## Cartesian product of v.
+co <- mutate(co, sr=Var1/Var2)		## Simple Ratio of all v permutations.
+co <- inf.omit(co)			## Delete {-Inf, Inf}
+co <- na.omit(co)			## Delete {NaN}
+tab <- table(co$sr)			## Create table object
+z <- unname(tab)			## Get table frequencies
+x <- as.numeric(names(tab))		## Get table decimal values
+x <- c(x, x*(-1))			## Add reciprocal values
+z <- c(z, z*(-1))			## Add reciprocal values
+y <- (abs(min(z)) + abs(max(z)))/2	## Get the value for centering the plot inside a cube, or 3D rectangle.
+
+
+upperx <- max(x)			## Calculate dimesions for an empty box.
+lowerx <- min(x)
+uppery <- max(y)
+lowery <- min(y)*(-1)
+upperz <- max(z)
+lowerz <- min(z)
+
+X <- c(lowerx, upperx)
+Y <- c(lowery, uppery)
+Y <- Y/2
+Z <- c(lowerz, upperz)
+
+y <- y*0
+plot3d(x = X, y = Y, z = Z, box = FALSE, axes = FALSE, xlab = "", ylab = "", zlab = "")
+points3d(x,y,z, col="darkorange")
+points3d(y,x,z, col="darkblue")
+
+
+co <- as.data.frame(cbind(x,y,z))
+
+revolution <- function(x, y, z, t) {
+  x1 <- x * cos(t) - y * sin(t)
+  y1 <- x * sin(t) + y * cos(t)
+  z1 <- z
+  res <- as.data.frame(cbind(x1, y1, z1))
+return(res)
+}
+
+vecn <- seq(0, 2 * pi, length.out = 720)
+colors <- cividis(720)
+
+for (i in vecn){
+test <- mapply(revolution, co$x,co$y,co$z, i)
+test <- t(test)
+test <- as.data.frame(test)
+colnames(test) <- c("xadd","yadd","zadd")
+points3d(test$xadd,test$yadd,test$zadd, col=colors)
+}

@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Number Tower — ℝ ⊂ 𝔻 ⊂ ℂ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f1e9d8; --bg-2:#ebe2cd; --ink:#181613; --muted:#7d756a;
+    --rule:#cfc3a8; --q1:#b13b2a; --q2:#c79235; --q3:#4f7a4a; --q4:#34557d; --accent:#7a3b1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink)}
+  body{
+    font-family:'EB Garamond',Georgia,serif;
+    font-size:18px;line-height:1.45;
+    padding:1.5rem 2rem 2rem;
+    max-width:1400px;
+    margin:0 auto;
+    background-image:
+      radial-gradient(circle at 15% 20%,rgba(122,59,31,.05),transparent 50%),
+      radial-gradient(circle at 85% 80%,rgba(52,85,125,.05),transparent 50%);
+    min-height:100vh;
+  }
+  header{
+    border-bottom:1px solid var(--rule);
+    padding-bottom:1rem;margin-bottom:2rem;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:1rem;
+  }
+  header h1{font-weight:500;font-size:2rem;letter-spacing:-.01em;font-style:italic}
+  header h1 .t{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:1.4rem;color:var(--accent);margin-left:.5rem}
+  header .sub{color:var(--muted);font-size:.95rem;font-style:italic}
+  main{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+  .panel{
+    background:var(--bg-2);border:1px solid var(--rule);
+    padding:1.25rem;display:flex;flex-direction:column;
+    box-shadow:0 1px 0 rgba(0,0,0,.03),0 8px 24px -12px rgba(24,22,19,.15);
+  }
+  .panel h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:1.7rem;font-weight:500;letter-spacing:.02em;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:1px solid var(--rule);padding-bottom:.5rem;margin-bottom:.4rem;
+  }
+  .panel h2 .name{font-family:'EB Garamond',serif;font-size:.9rem;font-style:italic;color:var(--muted);font-weight:400}
+  .panel .tag{font-size:.85rem;font-style:italic;color:var(--muted);margin-bottom:.6rem;min-height:2.6em}
+  .stage{background:#faf6eb;border:1px solid var(--rule);aspect-ratio:1/1;width:100%;max-height:clamp(220px,38vh,420px)}
+  .stage svg{width:100%;height:100%;display:block}
+  .readout{margin-top:.7rem;font-size:.9rem;color:var(--ink);min-height:5.4em}
+  .readout .lab{color:var(--muted);font-style:italic;font-size:.85em;letter-spacing:.02em;text-transform:uppercase;display:block;margin-bottom:.15em}
+  .readout .val{font-family:'JetBrains Mono',monospace;font-size:.9em}
+  .readout .note{color:var(--accent);font-style:italic;margin-top:.35em;font-size:.92em}
+  .axis{stroke:#bba886;stroke-width:1}
+  .grid-line{stroke:#e3d7b8;stroke-width:.5}
+  .qfill{opacity:.10}
+  .qlabel{font-family:'EB Garamond',serif;font-style:italic;font-size:13px;fill:var(--muted)}
+  .trail{fill:none;stroke-width:1.5;opacity:.6}
+  .ctrl{
+    border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+    padding:1.2rem 0;
+    display:grid;grid-template-columns:auto 1fr auto;
+    gap:1.5rem;align-items:start;
+  }
+  .ops-block{display:flex;flex-direction:column;gap:.4rem}
+  .ops-row{display:flex;flex-wrap:wrap;gap:.5rem}
+  .ops-section-label{
+    font-size:.75rem;color:var(--muted);font-style:italic;
+    letter-spacing:.06em;text-transform:uppercase;margin-top:.3rem
+  }
+  button{
+    font-family:'EB Garamond',serif;font-size:1rem;font-style:italic;
+    background:transparent;color:var(--ink);
+    border:1px solid var(--ink);padding:.4rem .9rem;cursor:pointer;
+    transition:background .12s,color .12s;letter-spacing:.01em;
+  }
+  button:hover{background:var(--ink);color:var(--bg)}
+  button.ghost{border-style:dashed;color:var(--muted);border-color:var(--muted)}
+  button.ghost:hover{background:var(--muted);color:var(--bg)}
+  .point-input{display:flex;align-items:center;gap:.5rem;font-style:italic;color:var(--muted)}
+  .point-input input{
+    font-family:'JetBrains Mono',monospace;font-size:.95rem;
+    width:4.5rem;padding:.3rem .5rem;
+    border:1px solid var(--rule);background:#faf6eb;color:var(--ink);text-align:center;
+  }
+  .input-key{color:var(--ink);font-weight:500;font-style:normal;min-width:1.4rem;font-family:'JetBrains Mono',monospace;font-size:.9rem}
+  .locks{
+    display:flex;flex-direction:column;gap:.4rem;font-size:.9rem;
+    border-left:3px solid var(--accent);padding-left:1rem;margin-top:.8rem;
+  }
+  .locks label{
+    display:flex;align-items:center;gap:.5rem;cursor:pointer;color:var(--ink);
+    padding:3px 7px;transition:background .12s;
+  }
+  .locks label:hover{background:rgba(122,59,31,.08)}
+  .commentary{
+    margin-top:1.5rem;padding:1rem 1.2rem;
+    border-left:3px solid var(--accent);
+    background:rgba(122,59,31,.04);
+    font-style:italic;font-size:1rem;color:var(--ink);min-height:3em;line-height:1.55;
+  }
+  .commentary .h{
+    font-style:normal;font-family:'JetBrains Mono',monospace;
+    font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:.3em;
+  }
+  footer{margin-top:2rem;color:var(--muted);font-size:.85rem;font-style:italic;text-align:center;border-top:1px solid var(--rule);padding-top:1rem}
+  #wLabel{font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>The Number Tower <span class="t">ℝ ⊂ 𝔻 ⊂ ℂ</span></h1>
+    <div class="sub">Apply operations successively · hover for bijective mapping · toggle 𝔻 locks</div>
+  </div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted)">v4</div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2><span>ℝ</span><span class="name">the real line</span></h2>
+    <div class="tag">One-dimensional. Carries sign, no planar direction.</div>
+    <div class="stage"><svg viewBox="-200 -200 400 400" id="svgR" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="readout">
+      <span class="lab">value</span>
+      <span class="val" id="rVal">x = −2</span>
+      <div class="note" id="rNote">y-coordinate is not representable.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span>𝔻</span><span class="name">directional numbers</span></h2>
+    <div class="tag">Two-dimensional, quadrant locked.<br>Crossings require explicit Rot<sub>α</sub> or Fold<sub>ϕ</sub>.</div>
+    <div class="stage"><svg viewBox="-200 -200 400 400" id="svgD" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="readout">
+      <span class="lab">value · quadrant</span>
+      <span class="val" id="dVal">(−2, 1) · Q₂</span>
+      <div class="note" id="dNote">Sign pattern (−,+) is invariant.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span>ℂ</span><span class="name">complex plane</span></h2>
+    <div class="tag">Two-dimensional, free rotation. The Klein four-group acts trivially.</div>
+    <div class="stage"><svg viewBox="-200 -200 400 400" id="svgC" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="readout">
+      <span class="lab">value · argument</span>
+      <span class="val" id="cVal">−2 + 1i · 153.4°</span>
+      <div class="note" id="cNote">Quadrant is computed, not stored.</div>
+    </div>
+  </section>
+</main>
+
+<div class="ctrl">
+  <!-- Inputs -->
+  <div style="display:flex;flex-direction:column;gap:.7rem">
+    <div class="point-input">
+      <span class="input-key">z =</span><span>(</span>
+      <input type="number" id="inX" value="-2" step="0.5">
+      <span>,</span>
+      <input type="number" id="inY" value="1" step="0.5">
+      <span>)</span>
+    </div>
+    <div class="point-input">
+      <span class="input-key">w =</span><span>(</span>
+      <input type="number" id="wX" value="1" step="0.5">
+      <span>,</span>
+      <input type="number" id="wY" value="1" step="0.5">
+      <span>)</span>
+    </div>
+    <div class="point-input">
+      <span class="input-key">s =</span>
+      <input type="number" id="sVal" value="2" step="0.5">
+    </div>
+    <div style="font-size:.8rem;color:var(--muted);font-style:italic;padding-left:.1rem">w two-part · s scalar</div>
+  </div>
+
+  <!-- Operations -->
+  <div class="ops-block">
+    <div class="ops-section-label">intrinsic</div>
+    <div class="ops-row">
+      <button data-op="square">z²</button>
+      <button data-op="sqrt">√z</button>
+      <button data-op="rotate">Rot<sub>π/4</sub></button>
+      <button data-op="fold">Fold<sub>x-axis</sub></button>
+    </div>
+    <div class="ops-section-label" style="margin-top:.5rem">with w = (<span id="wLabel">1, 1</span>)</div>
+    <div class="ops-row">
+      <button data-op="addw">z + w</button>
+      <button data-op="subw">z − w</button>
+      <button data-op="mulw">z × w</button>
+      <button data-op="divw">z ÷ w</button>
+    </div>
+    <div class="ops-section-label" style="margin-top:.5rem">with s = <span id="sLabel">2</span></div>
+    <div class="ops-row">
+      <button data-op="adds">z + s</button>
+      <button data-op="subs">z − s</button>
+      <button data-op="muls">z × s</button>
+      <button data-op="divs">z ÷ s</button>
+    </div>
+    <div class="ops-row" style="margin-top:.4rem">
+      <button class="ghost" data-op="reset">reset</button>
+      <button class="ghost" data-op="cleartrail">clear trail</button>
+    </div>
+  </div>
+
+  <!-- Legend + Locks -->
+  <div>
+    <div style="font-size:.9rem;line-height:1.8">
+      <span style="color:var(--q2)">■</span> Q₂ &nbsp;
+      <span style="color:var(--q1)">■</span> Q₁<br>
+      <span style="color:var(--q3)">■</span> Q₃ &nbsp;
+      <span style="color:var(--q4)">■</span> Q₄
+    </div>
+    <div class="locks">
+      <label><input type="checkbox" id="lockRot" checked> Forbidden Rotation</label>
+      <label><input type="checkbox" id="lockFold" checked> Forbidden Folding</label>
+      <label><input type="checkbox" id="lockOrigin" checked> Forbidden Origin Crossing</label>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem;padding:0 7px">
+        All locks OFF → 𝔻 behaves like ℂ
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="commentary" id="commentary">
+  <span class="h">commentary</span>
+  <strong>Hover</strong> any panel to see the same point across all three systems.<br>
+  Apply operations successively — past positions leave a fading trail.<br>
+  w is now a full two-part number; set it in the inputs above.
+</div>
+
+<footer>ℝ ⊂ 𝔻 ⊂ ℂ — hover for bijective mapping · operations compose · 𝔻 locked by default</footer>
+
+<script>
+(() => {
+  // ── State ──────────────────────────────────────────────────────────────────
+  const state = {
+    zR: {x:-2, y:0},
+    zD: {x:-2, y:1},
+    zC: {x:-2, y:1},
+    busy: false,
+    animFrame: null,
+    history: [],          // [{R,D,C}, …]  up to MAX_HIST entries
+  };
+
+  const SCALE = 32;
+  const MAX_HIST = 9;
+  const Q_COLORS = {1:'#b13b2a', 2:'#c79235', 3:'#4f7a4a', 4:'#34557d'};
+  const Q_SUB = ['₁','₂','₃','₄'];
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function quadrant(p) {
+    if (p.x > 0 && p.y > 0) return 1;
+    if (p.x < 0 && p.y > 0) return 2;
+    if (p.x < 0 && p.y < 0) return 3;
+    if (p.x > 0 && p.y < 0) return 4;
+    return 0;
+  }
+
+  function qLabel(p) {
+    const q = quadrant(p);
+    return q > 0 ? 'Q' + Q_SUB[q-1] : 'axis';
+  }
+
+  function fmt(v, dp=2) {
+    if (typeof v !== 'number' || !isFinite(v)) return '·';
+    if (Math.abs(v - Math.round(v)) < 1e-9) return Math.round(v).toString();
+    return v.toFixed(dp).replace(/\.?0+$/, '');
+  }
+
+  function cMul(a, b) { return {x: a.x*b.x - a.y*b.y, y: a.x*b.y + a.y*b.x}; }
+  function cDiv(a, b) {
+    const d = b.x*b.x + b.y*b.y;
+    return {x: (a.x*b.x + a.y*b.y)/d, y: (a.y*b.x - a.x*b.y)/d};
+  }
+  function cSqrt(p) {
+    const r = Math.hypot(p.x, p.y);
+    const th = Math.atan2(p.y, p.x);
+    const sr = Math.sqrt(Math.max(r, 1e-14));
+    return {x: sr * Math.cos(th/2), y: sr * Math.sin(th/2)};
+  }
+
+  // ── SVG Setup ──────────────────────────────────────────────────────────────
+  function setupSvg(svg, kind) {
+    svg.innerHTML = '';
+    const NS = 'http://www.w3.org/2000/svg';
+
+    // grid
+    const g = document.createElementNS(NS, 'g');
+    for (let i = -6; i <= 6; i++) {
+      if (i === 0) continue;
+      const v = i * SCALE;
+      const lv = document.createElementNS(NS, 'line');
+      lv.setAttribute('x1', v); lv.setAttribute('y1', -200);
+      lv.setAttribute('x2', v); lv.setAttribute('y2', 200);
+      lv.setAttribute('class', 'grid-line'); g.appendChild(lv);
+      if (kind !== 'R') {
+        const lh = document.createElementNS(NS, 'line');
+        lh.setAttribute('x1', -200); lh.setAttribute('y1', v);
+        lh.setAttribute('x2', 200); lh.setAttribute('y2', v);
+        lh.setAttribute('class', 'grid-line'); g.appendChild(lh);
+      }
+    }
+    svg.appendChild(g);
+
+    if (kind === 'R') {
+      const ax = document.createElementNS(NS, 'line');
+      ax.setAttribute('x1',-200); ax.setAttribute('y1',0); ax.setAttribute('x2',200); ax.setAttribute('y2',0);
+      ax.setAttribute('class','axis'); svg.appendChild(ax);
+      for (let v = -5; v <= 5; v++) {
+        if (v === 0) continue;
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', v*SCALE); t.setAttribute('y', 18);
+        t.setAttribute('text-anchor','middle');
+        t.setAttribute('font-family','JetBrains Mono,monospace');
+        t.setAttribute('font-size','10'); t.setAttribute('fill','#8a8378');
+        t.textContent = v; svg.appendChild(t);
+      }
+    } else {
+      // quadrant fills
+      [{q:1,x:0,y:-200},{q:2,x:-200,y:-200},{q:3,x:-200,y:0},{q:4,x:0,y:0}].forEach(({q,x,y}) => {
+        const r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x',x); r.setAttribute('y',y);
+        r.setAttribute('width',200); r.setAttribute('height',200);
+        r.setAttribute('fill', Q_COLORS[q]); r.setAttribute('class','qfill');
+        r.setAttribute('data-q', q); svg.appendChild(r);
+      });
+      // axes
+      const ax1 = document.createElementNS(NS, 'line');
+      ax1.setAttribute('x1',-200); ax1.setAttribute('y1',0); ax1.setAttribute('x2',200); ax1.setAttribute('y2',0);
+      ax1.setAttribute('class','axis'); svg.appendChild(ax1);
+      const ax2 = document.createElementNS(NS, 'line');
+      ax2.setAttribute('x1',0); ax2.setAttribute('y1',-200); ax2.setAttribute('x2',0); ax2.setAttribute('y2',200);
+      ax2.setAttribute('class','axis'); svg.appendChild(ax2);
+      // tick labels
+      for (let v = -5; v <= 5; v++) {
+        if (v === 0) continue;
+        const tx = document.createElementNS(NS, 'text');
+        tx.setAttribute('x', v*SCALE); tx.setAttribute('y', 14);
+        tx.setAttribute('text-anchor','middle');
+        tx.setAttribute('font-family','JetBrains Mono,monospace');
+        tx.setAttribute('font-size','9'); tx.setAttribute('fill','#8a8378');
+        tx.textContent = v; svg.appendChild(tx);
+        if (kind === 'D' || kind === 'C') {
+          const ty = document.createElementNS(NS, 'text');
+          ty.setAttribute('x', -12); ty.setAttribute('y', -v*SCALE + 4);
+          ty.setAttribute('text-anchor','end');
+          ty.setAttribute('font-family','JetBrains Mono,monospace');
+          ty.setAttribute('font-size','9'); ty.setAttribute('fill','#8a8378');
+          ty.textContent = v; svg.appendChild(ty);
+        }
+      }
+      // Q labels
+      [{q:1,x:140,y:-140},{q:2,x:-140,y:-140},{q:3,x:-140,y:140},{q:4,x:140,y:140}].forEach(({q,x,y}) => {
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x',x); t.setAttribute('y',y);
+        t.setAttribute('text-anchor','middle'); t.setAttribute('class','qlabel');
+        t.textContent = 'Q' + Q_SUB[q-1]; svg.appendChild(t);
+      });
+    }
+
+    const dyn = document.createElementNS(NS, 'g');
+    dyn.setAttribute('id', 'dyn-' + kind);
+    svg.appendChild(dyn);
+  }
+
+  function clearDyn(kind) {
+    const d = document.getElementById('dyn-' + kind);
+    if (d) d.innerHTML = '';
+  }
+
+  function svgPt(kind, p, opts={}) {
+    const {color='#181613', r=5, halo=false, label='', opacity=1} = opts;
+    const NS = 'http://www.w3.org/2000/svg';
+    const dyn = document.getElementById('dyn-' + kind);
+    const px = p.x * SCALE, py = -p.y * SCALE;
+    if (halo) {
+      const h = document.createElementNS(NS, 'circle');
+      h.setAttribute('cx',px); h.setAttribute('cy',py); h.setAttribute('r', r+6);
+      h.setAttribute('fill', color); h.setAttribute('opacity', .15*opacity);
+      dyn.appendChild(h);
+    }
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx',px); c.setAttribute('cy',py); c.setAttribute('r', r);
+    c.setAttribute('fill', color); c.setAttribute('opacity', opacity);
+    dyn.appendChild(c);
+    if (label) {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', px+10); t.setAttribute('y', py-10);
+      t.setAttribute('font-family','JetBrains Mono,monospace');
+      t.setAttribute('font-size','9'); t.setAttribute('fill','#7a3b1f');
+      t.setAttribute('opacity', opacity);
+      t.textContent = label;
+      dyn.appendChild(t);
+    }
+    return c;
+  }
+
+  function svgTrail(kind, points, color, dashed=false) {
+    if (!points || points.length < 2) return null;
+    const NS = 'http://www.w3.org/2000/svg';
+    const dyn = document.getElementById('dyn-' + kind);
+    const path = document.createElementNS(NS, 'path');
+    let d = '';
+    points.forEach((p,i) => {
+      d += (i===0?'M':'L') + (p.x*SCALE) + ',' + (-p.y*SCALE) + ' ';
+    });
+    path.setAttribute('d', d);
+    path.setAttribute('class','trail');
+    path.setAttribute('stroke', color);
+    if (dashed) path.setAttribute('stroke-dasharray','3 3');
+    dyn.appendChild(path);
+    return path;
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render() {
+    const {zR, zD, zC, history} = state;
+    const q = quadrant(zD);
+    const n = history.length;
+
+    ['R','D','C'].forEach(k => clearDyn(k));
+
+    // History dots — fading from dim to bright as we approach current
+    history.forEach((h, i) => {
+      const alpha = 0.12 + 0.38 * (i / Math.max(n-1, 1));
+      svgPt('R', {x: h.R.x, y:0}, {color:'#181613', r:3, opacity:alpha});
+      svgPt('D', h.D, {color: Q_COLORS[quadrant(h.D)]||'#181613', r:3, opacity:alpha});
+      svgPt('C', h.C, {color:'#181613', r:3, opacity:alpha});
+    });
+
+    // ℝ
+    document.getElementById('rVal').textContent = `x = ${fmt(zR.x)}`;
+    document.getElementById('rNote').textContent = Math.abs(zC.y) < 1e-9
+      ? 'Fully representable in ℝ.'
+      : `y = ${fmt(zC.y)} is not representable in ℝ.`;
+    svgPt('R', {x:zR.x, y:0}, {color:'#181613', r:5, halo:true, label:fmt(zR.x)});
+
+    // 𝔻
+    document.getElementById('dVal').textContent = `(${fmt(zD.x)}, ${fmt(zD.y)}) · ${qLabel(zD)}`;
+    document.getElementById('dNote').textContent = q===0
+      ? 'On a half-axis: quadrant requires an explicit convention.'
+      : `Sign pattern (${zD.x>0?'+':'−'}, ${zD.y>0?'+':'−'}) is invariant under default operations.`;
+    document.getElementById('svgD').querySelectorAll('rect[data-q]').forEach(r =>
+      r.setAttribute('opacity', +r.getAttribute('data-q')===q ? .26 : .08)
+    );
+    svgPt('D', zD, {color: Q_COLORS[q]||'#181613', r:5, halo:true, label:`(${fmt(zD.x)},${fmt(zD.y)})`});
+
+    // ℂ
+    const arg = Math.atan2(zC.y, zC.x) * 180/Math.PI;
+    const signY = zC.y >= 0 ? '+' : '−';
+    document.getElementById('cVal').textContent = `${fmt(zC.x)} ${signY} ${fmt(Math.abs(zC.y))}i  ·  ${fmt(arg,1)}°`;
+    document.getElementById('cNote').textContent = `|z| = ${fmt(Math.hypot(zC.x,zC.y),2)};  argument computed via atan2.`;
+    // argument arc
+    if (Math.hypot(zC.x,zC.y) > 0.01) {
+      const NS = 'http://www.w3.org/2000/svg';
+      const dyn = document.getElementById('dyn-C');
+      const rArc = 22, a = Math.atan2(zC.y, zC.x);
+      const arc = document.createElementNS(NS,'path');
+      const large = Math.abs(a) > Math.PI ? 1 : 0;
+      const sweep = a < 0 ? 0 : 1;
+      arc.setAttribute('d', `M ${rArc} 0 A ${rArc} ${rArc} 0 ${large} ${sweep} ${rArc*Math.cos(a)} ${-rArc*Math.sin(a)}`);
+      arc.setAttribute('fill','none'); arc.setAttribute('stroke','#7a3b1f'); arc.setAttribute('stroke-width','1.4');
+      dyn.appendChild(arc);
+    }
+    svgPt('C', zC, {color:'#181613', r:5, halo:true, label:`${fmt(zC.x)}${signY}${fmt(Math.abs(zC.y))}i`});
+  }
+
+  // ── Animation ──────────────────────────────────────────────────────────────
+  function cancelAnim() {
+    if (state.animFrame) {
+      cancelAnimationFrame(state.animFrame);
+      state.animFrame = null;
+      state.busy = false;
+    }
+  }
+
+  // Polar arc path (for rotation-type ops in ℂ)
+  function arcPath(from, to, t) {
+    const r0 = Math.hypot(from.x, from.y), a0 = Math.atan2(from.y, from.x);
+    const r1 = Math.hypot(to.x, to.y),   a1 = Math.atan2(to.y, to.x);
+    let da = a1 - a0;
+    if (da > Math.PI) da -= 2*Math.PI;
+    if (da < -Math.PI) da += 2*Math.PI;
+    const N = 30, pts = [];
+    for (let i = 0; i <= N*t; i++) {
+      const tau = i/N;
+      pts.push({
+        x: (r0+(r1-r0)*tau) * Math.cos(a0+da*tau),
+        y: (r0+(r1-r0)*tau) * Math.sin(a0+da*tau)
+      });
+    }
+    return pts;
+  }
+
+  function lerp(a, b, t) { return {x: a.x+(b.x-a.x)*t, y: a.y+(b.y-a.y)*t}; }
+
+  function drawOpTrail(fR, tR, fD, tD, fC, tC, t, op) {
+    // ℝ  always linear
+    svgTrail('R', [{x:fR.x,y:0}, {x:fR.x+(tR.x-fR.x)*t,y:0}], '#b13b2a');
+
+    // 𝔻  linear; dashed if quadrant crossed
+    const midD = lerp(fD, tD, t);
+    const crosses = quadrant(fD)!==0 && quadrant(tD)!==0 && quadrant(fD)!==quadrant(tD);
+    svgTrail('D', [fD, midD], crosses ? '#7a3b1f' : (Q_COLORS[quadrant(tD)]||'#181613'), crosses);
+
+    // ℂ  arc for scaling/rotation ops, linear for translations/folds
+    const linearOps = new Set(['addw','subw','fold']);
+    if (linearOps.has(op)) {
+      svgTrail('C', [fC, lerp(fC, tC, t)], '#34557d');
+    } else {
+      svgTrail('C', arcPath(fC, tC, t), '#34557d');
+    }
+  }
+
+  function animate(fR, tR, fD, tD, fC, tC, op, cb) {
+    cancelAnim();
+    state.busy = true;
+    const dur = 620, t0 = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now-t0)/dur);
+      const e = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+      state.zR = {x: fR.x+(tR.x-fR.x)*e, y:0};
+      state.zD = lerp(fD, tD, e);
+      state.zC = lerp(fC, tC, e);
+      render();
+      drawOpTrail(fR, tR, fD, tD, fC, tC, e, op);
+      if (t < 1) {
+        state.animFrame = requestAnimationFrame(step);
+      } else {
+        state.busy = false; state.animFrame = null;
+        if (cb) cb();
+      }
+    }
+    state.animFrame = requestAnimationFrame(step);
+  }
+
+  // ── Operations ─────────────────────────────────────────────────────────────
+  function getW() {
+    return {
+      x: parseFloat(document.getElementById('wX').value) || 0,
+      y: parseFloat(document.getElementById('wY').value) || 0,
+    };
+  }
+
+  function getS() { return parseFloat(document.getElementById('sVal').value) || 0; }
+
+  function doOp(op) {
+    // Always cancel any running animation — new op starts immediately
+    cancelAnim();
+
+    if (op === 'cleartrail') {
+      state.history = [];
+      render();
+      setCommentary('History trail cleared.');
+      return;
+    }
+
+    if (op !== 'reset') {
+      if (state.history.length >= MAX_HIST) state.history.shift();
+      state.history.push({R:{...state.zR}, D:{...state.zD}, C:{...state.zC}});
+    }
+
+    const fR = {...state.zR}, fD = {...state.zD}, fC = {...state.zC};
+    const lockRot  = document.getElementById('lockRot').checked;
+    const lockFold = document.getElementById('lockFold').checked;
+    const unrest   = !lockRot && !document.getElementById('lockFold').checked && !document.getElementById('lockOrigin').checked;
+
+    const w = getW();
+    const wMag = Math.hypot(w.x, w.y);
+    let tR, tD, tC, note = '';
+
+    if (op === 'square') {
+      // ℝ: x²
+      tR = {x: fR.x*fR.x, y:0};
+      // ℂ: (a+bi)² = a²-b² + 2abi
+      tC = {x: fC.x*fC.x - fC.y*fC.y, y: 2*fC.x*fC.y};
+      // 𝔻 locked: magnitude becomes r², direction unchanged (quadrant preserved)
+      //            (x,y) · r  has magnitude r² and same angle as (x,y)
+      const rD = Math.hypot(fD.x, fD.y);
+      tD = unrest ? {...tC} : {x: fD.x*rD, y: fD.y*rD};
+      note = `<b>z²</b><br>`
+           + `ℝ: (${fmt(fR.x)})² = ${fmt(tR.x)}<br>`
+           + `𝔻 ${unrest
+               ? `unlocked → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`
+               : `locked: |z|² = ${fmt(rD*rD)}, ${qLabel(fD)} preserved`}<br>`
+           + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)}),  arg = ${fmt(Math.atan2(tC.y,tC.x)*180/Math.PI,1)}°`;
+
+    } else if (op === 'sqrt') {
+      // ℝ: only defined for x≥0
+      tR = fR.x >= 0 ? {x: Math.sqrt(fR.x), y:0} : {x:0, y:0};
+      // ℂ: principal sqrt — halve argument, sqrt magnitude
+      tC = cSqrt(fC);
+      // 𝔻 locked: preserve quadrant, sqrt of magnitude
+      //            (x,y)/√r  has magnitude √r and same angle as (x,y)
+      const rD = Math.hypot(fD.x, fD.y) || 1e-12;
+      const sqrtRD = Math.sqrt(rD);
+      tD = unrest ? {...tC} : {x: fD.x/sqrtRD, y: fD.y/sqrtRD};
+      const rNote = fR.x < 0 ? '(ℝ: imaginary — set to 0)' : `= ${fmt(tR.x)}`;
+      const thetaC = Math.atan2(fC.y, fC.x);
+      note = `<b>√z</b><br>`
+           + `ℝ: √${fmt(fR.x)} ${rNote}<br>`
+           + `𝔻 ${unrest
+               ? `unlocked → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`
+               : `locked: |√z| = ${fmt(sqrtRD)}, ${qLabel(fD)} preserved`}<br>`
+           + `ℂ: arg ${fmt(thetaC*180/Math.PI,1)}° → ${fmt(thetaC/2*180/Math.PI,1)}°,  |√z| = ${fmt(Math.sqrt(Math.hypot(fC.x,fC.y)),2)}`;
+
+    } else if (op === 'rotate') {
+      const a = Math.PI/4, c = Math.cos(a), s = Math.sin(a);
+      const rot = p => ({x: p.x*c - p.y*s, y: p.x*s + p.y*c});
+      tC = rot(fC);
+      tD = lockRot ? {...fD} : rot(fD);
+      tR = {...fR};
+      note = `<b>Rot<sub>π/4</sub></b> (+45°)<br>`
+           + `ℝ: unchanged (1D, no direction)<br>`
+           + `𝔻: ${lockRot
+               ? '⚠ rotation forbidden — point unchanged'
+               : `explicit Rot applied → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`}<br>`
+           + `ℂ: arg → ${fmt(Math.atan2(tC.y,tC.x)*180/Math.PI,1)}°`;
+
+    } else if (op === 'fold') {
+      tC = {x: fC.x, y: -fC.y};
+      tD = lockFold ? {...fD} : {x: fD.x, y: -fD.y};
+      tR = {...fR};
+      note = `<b>Fold<sub>x-axis</sub></b> (y → −y)<br>`
+           + `ℝ: unchanged<br>`
+           + `𝔻: ${lockFold
+               ? '⚠ fold forbidden — point unchanged'
+               : `explicit Fold → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`}<br>`
+           + `ℂ: conjugate z̄ = ${fmt(fC.x)} − ${fmt(Math.abs(fC.y))}i`;
+
+    } else if (op === 'addw') {
+      tR = {x: fR.x + w.x, y:0};
+      tC = {x: fC.x + w.x, y: fC.y + w.y};
+      tD = {x: fD.x + w.x, y: fD.y + w.y};
+      const crossed = quadrant(fD)!==0 && quadrant(tD)!==0 && quadrant(fD)!==quadrant(tD);
+      note = `<b>z + w</b>,  w = (${fmt(w.x)}, ${fmt(w.y)})<br>`
+           + `ℝ: ${fmt(fR.x)} + ${fmt(w.x)} = ${fmt(tR.x)}<br>`
+           + `𝔻: ${crossed
+               ? `⚠ quadrant crossed ${qLabel(fD)} → ${qLabel(tD)} — requires explicit permission in 𝔻`
+               : `${qLabel(fD)} preserved → (${fmt(tD.x)}, ${fmt(tD.y)})`}<br>`
+           + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)})`;
+
+    } else if (op === 'subw') {
+      tR = {x: fR.x - w.x, y:0};
+      tC = {x: fC.x - w.x, y: fC.y - w.y};
+      tD = {x: fD.x - w.x, y: fD.y - w.y};
+      const crossed = quadrant(fD)!==0 && quadrant(tD)!==0 && quadrant(fD)!==quadrant(tD);
+      note = `<b>z − w</b>,  w = (${fmt(w.x)}, ${fmt(w.y)})<br>`
+           + `ℝ: ${fmt(fR.x)} − ${fmt(w.x)} = ${fmt(tR.x)}<br>`
+           + `𝔻: ${crossed
+               ? `⚠ quadrant crossed ${qLabel(fD)} → ${qLabel(tD)}`
+               : `${qLabel(fD)} preserved → (${fmt(tD.x)}, ${fmt(tD.y)})`}<br>`
+           + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)})`;
+
+    } else if (op === 'mulw') {
+      tR = {x: fR.x * w.x, y:0};   // ℝ: real-part multiplication
+      tC = cMul(fC, w);
+      // 𝔻 locked: scale magnitude by |w|, preserve sign pattern of z
+      // (z's angle stays fixed; only |z| is scaled by |w|)
+      tD = unrest ? {...tC} : {x: fD.x*wMag, y: fD.y*wMag};
+      note = `<b>z × w</b>,  w = (${fmt(w.x)}, ${fmt(w.y)}),  |w| = ${fmt(wMag)}<br>`
+           + `ℝ: ${fmt(fR.x)} × ${fmt(w.x)} = ${fmt(tR.x)}<br>`
+           + `𝔻 ${unrest
+               ? `unlocked (= ℂ) → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`
+               : `locked: |z×w| = ${fmt(Math.hypot(fD.x,fD.y)*wMag,2)}, ${qLabel(fD)} preserved`}<br>`
+           + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)}),  arg = ${fmt(Math.atan2(tC.y,tC.x)*180/Math.PI,1)}°`;
+
+    } else if (op === 'divw') {
+      if (wMag < 1e-9) {
+        tR = {...fR}; tD = {...fD}; tC = {...fC};
+        note = `<b>z ÷ w</b> — <em>division by zero (|w| = 0)</em>`;
+      } else {
+        // ℝ uses w.x; guard against w.x = 0
+        tR = Math.abs(w.x) > 1e-9 ? {x: fR.x/w.x, y:0} : {x: fR.x, y:0};
+        tC = cDiv(fC, w);
+        // 𝔻 locked: divide magnitude by |w|, preserve sign pattern
+        tD = unrest ? {...tC} : {x: fD.x/wMag, y: fD.y/wMag};
+        note = `<b>z ÷ w</b>,  w = (${fmt(w.x)}, ${fmt(w.y)}),  |w| = ${fmt(wMag)}<br>`
+             + (Math.abs(w.x)<1e-9 ? `ℝ: w_x = 0, real part unchanged<br>` : `ℝ: ${fmt(fR.x)} ÷ ${fmt(w.x)} = ${fmt(tR.x)}<br>`)
+             + `𝔻 ${unrest
+                 ? `unlocked (= ℂ) → (${fmt(tD.x)}, ${fmt(tD.y)}) ${qLabel(tD)}`
+                 : `locked: |z÷w| = ${fmt(Math.hypot(fD.x,fD.y)/wMag,2)}, ${qLabel(fD)} preserved`}<br>`
+             + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)}),  arg = ${fmt(Math.atan2(tC.y,tC.x)*180/Math.PI,1)}°`;
+      }
+
+    } else if (op === 'adds' || op === 'subs' || op === 'muls' || op === 'divs') {
+      const s = getS();
+      const sign = op === 'subs' ? -1 : 1;
+      if (op === 'adds' || op === 'subs') {
+        const ds = sign * s;
+        tR = {x: fR.x + ds, y:0};
+        tC = {x: fC.x + ds, y: fC.y};
+        tD = {x: fD.x + ds, y: fD.y};
+        const crossed = quadrant(fD)!==0 && quadrant(tD)!==0 && quadrant(fD)!==quadrant(tD);
+        const sym = op === 'adds' ? '+' : '−';
+        note = `<b>z ${sym} s</b>,  s = ${fmt(s)}<br>`
+             + `ℝ: ${fmt(fR.x)} ${sym} ${fmt(s)} = ${fmt(tR.x)}<br>`
+             + `𝔻: ${crossed ? `⚠ quadrant crossed ${qLabel(fD)} → ${qLabel(tD)}` : `${qLabel(fD)} preserved`}<br>`
+             + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)})`;
+      } else if (op === 'muls') {
+        tR = {x: fR.x * s, y:0};
+        tC = {x: fC.x * s, y: fC.y * s};
+        // 𝔻 locked: use |s| to preserve sign pattern; unlocked: use s directly
+        const sD = unrest ? s : Math.abs(s);
+        tD = {x: fD.x * sD, y: fD.y * sD};
+        const flips = !unrest && s < 0;
+        note = `<b>z × s</b>,  s = ${fmt(s)}<br>`
+             + `ℝ: ${fmt(fR.x)} × ${fmt(s)} = ${fmt(tR.x)}<br>`
+             + `𝔻 ${unrest ? `unlocked` : `locked: using |s| = ${fmt(Math.abs(s))}${flips?' (negative s would flip quadrant — forbidden)':''}, ${qLabel(fD)} preserved`}<br>`
+             + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)})`;
+      } else { // divs
+        if (Math.abs(s) < 1e-9) {
+          tR = {...fR}; tD = {...fD}; tC = {...fC};
+          note = `<b>z ÷ s</b> — <em>division by zero (s = 0)</em>`;
+        } else {
+          tR = {x: fR.x / s, y:0};
+          tC = {x: fC.x / s, y: fC.y / s};
+          const sD = unrest ? s : Math.abs(s);
+          tD = {x: fD.x / sD, y: fD.y / sD};
+          note = `<b>z ÷ s</b>,  s = ${fmt(s)}<br>`
+               + `ℝ: ${fmt(fR.x)} ÷ ${fmt(s)} = ${fmt(tR.x)}<br>`
+               + `𝔻 ${unrest ? `unlocked` : `locked: using |s| = ${fmt(Math.abs(s))}, ${qLabel(fD)} preserved`}<br>`
+               + `ℂ: (${fmt(tC.x)}, ${fmt(tC.y)})`;
+        }
+      }
+
+    } else if (op === 'reset') {
+      tR = {x:-2,y:0}; tD = {x:-2,y:1}; tC = {x:-2,y:1};
+      state.history = [];
+      note = `Reset to z = (−2, 1). History cleared.`;
+    }
+
+    setCommentary(note);
+    animate(fR, tR, fD, tD, fC, tC, op, () => {
+      state.zR = tR; state.zD = tD; state.zC = tC;
+      document.getElementById('inX').value = +tC.x.toFixed(3);
+      document.getElementById('inY').value = +tC.y.toFixed(3);
+      render();
+    });
+  }
+
+  function setCommentary(html) {
+    document.getElementById('commentary').innerHTML = '<span class="h">commentary</span>' + html;
+  }
+
+  // ── Hover correspondence ──────────────────────────────────────────────────
+  let hoverEls = [];
+  function clearHover() { hoverEls.forEach(e => e && e.remove()); hoverEls = []; }
+
+  function showHover(kind, mx, my) {
+    clearHover();
+    const rect = document.getElementById('svg'+kind).getBoundingClientRect();
+    const x = (mx - rect.left - rect.width/2) / SCALE;
+    const y = -(my - rect.top - rect.height/2) / SCALE;
+    const gc = '#7a3b1f';
+    if (kind !== 'R') hoverEls.push(svgPt('R', {x,y:0}, {color:gc, r:4, opacity:.4}));
+    if (kind !== 'D') hoverEls.push(svgPt('D', {x,y}, {color: Q_COLORS[quadrant({x,y})]||gc, r:4, opacity:.4}));
+    if (kind !== 'C') hoverEls.push(svgPt('C', {x,y}, {color:gc, r:4, opacity:.4}));
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  function init() {
+    ['R','D','C'].forEach(k => {
+      setupSvg(document.getElementById('svg'+k), k);
+      const svg = document.getElementById('svg'+k);
+      svg.addEventListener('mousemove', e => { if (!state.busy) showHover(k, e.clientX, e.clientY); });
+      svg.addEventListener('mouseleave', () => { if (!state.busy) clearHover(); });
+    });
+
+    document.querySelectorAll('button[data-op]').forEach(b =>
+      b.addEventListener('click', () => doOp(b.dataset.op))
+    );
+
+    // z inputs
+    function syncZ() {
+      cancelAnim();
+      const x = parseFloat(document.getElementById('inX').value) || 0;
+      const y = parseFloat(document.getElementById('inY').value) || 0;
+      state.zR = {x, y:0}; state.zD = {x,y}; state.zC = {x,y};
+      state.history = [];
+      render();
+      setCommentary(`z set to (${fmt(x)}, ${fmt(y)}). History cleared.`);
+    }
+    document.getElementById('inX').addEventListener('change', syncZ);
+    document.getElementById('inY').addEventListener('change', syncZ);
+
+    // w label updater
+    function updateWLabel() {
+      const wx = parseFloat(document.getElementById('wX').value) || 0;
+      const wy = parseFloat(document.getElementById('wY').value) || 0;
+      document.getElementById('wLabel').textContent = `${fmt(wx)}, ${fmt(wy)}`;
+    }
+    document.getElementById('wX').addEventListener('input', updateWLabel);
+    document.getElementById('wY').addEventListener('input', updateWLabel);
+    updateWLabel();
+
+    const sInput = document.getElementById('sVal');
+    function updateSLabel() { document.getElementById('sLabel').textContent = fmt(parseFloat(sInput.value)||0); }
+    sInput.addEventListener('input', updateSLabel);
+    updateSLabel();
+
+    ['lockRot','lockFold','lockOrigin'].forEach(id =>
+      document.getElementById(id).addEventListener('change', () => { if (!state.busy) render(); })
+    );
+
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
