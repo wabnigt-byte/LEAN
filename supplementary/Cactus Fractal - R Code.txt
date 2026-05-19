@@ -1,0 +1,119 @@
+# 1. SETUP 
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, numbers, Cairo, FRACTION)
+
+# Prevent scientific notation
+options(scipen = 999)
+
+# 2. Custom function for GCD, also works for rationals.
+gg <- function (frac1, frac2) {
+    f1 <- decimal_to_fraction(frac1)
+    f2 <- decimal_to_fraction(frac2)
+    num_gcd <- gcd(f1[1], f2[1])
+    denom_lcm <- lcm(f1[2], f2[2])
+    generalized_gcd <- num_gcd/denom_lcm
+    return(generalized_gcd)
+}
+
+# Helper function to remove rows with infinite values
+omit_infinite <- function(df) {
+  df[is.finite(rowSums(df)), ]
+}
+
+
+# -------------------------------------------------------------------------
+# 2. GENERATE BASE COORDINATE GRID
+# -------------------------------------------------------------------------
+# Create an expanding grid of integers (p, q), removing duplicates 
+# by keeping only the lowest order where they first appeared.
+df_unique <- map_dfr(1:30, ~ expand_grid(p = 0:.x, q = 0:.x, ord = .x)) %>%
+  group_by(p, q) %>%
+  slice_min(ord, n = 1) %>%
+  ungroup() %>%
+  dplyr::filter(!(p == 0 & q == 0)) # Prevent division by zero in the next step
+
+# 3. BASE MATHEMATICAL TRANSFORMATIONS
+co <- df_unique %>%
+  mutate(
+    ndvi = (p - q) / (p + q),
+    
+    gcd = mapply(gg, p, q), 
+    
+    complex_val = complex(real = ndvi, imaginary = gcd)
+  ) %>%
+  arrange(ord)
+
+# -------------------------------------------------------------------------
+# 4. HYPERBOLIC GEOMETRY FUNCTIONS
+# -------------------------------------------------------------------------
+# Project a complex number into the Poincaré disk model
+z_poincare <- function(z) {
+  (z + 1i) / (1 + abs(z))
+}
+
+# Calculate the hyperbolic distance between two points in the Poincaré disk
+hyperbolic_distance <- function(z1, z2) {
+  d_sq <- abs(z1 - z2)^2
+  numerator <- 2 * d_sq
+  denominator <- (1 - abs(z1)^2) * (1 - abs(z2)^2)
+  acosh(1 + numerator / denominator)
+}
+
+# -------------------------------------------------------------------------
+# 5. CROSS-JOIN & FRACTAL INTERFERENCE MAPPING
+# -------------------------------------------------------------------------
+# Create every possible pair of our complex numbers (z1 and z2)
+plott <- expand_grid(z1 = co$complex_val, z2 = co$complex_val) %>%
+  mutate(
+    # Project both points into the Poincaré disk
+    p1 = z_poincare(z1),
+    p2 = z_poincare(z2),
+    
+    # Measure the hyperbolic distance between them
+    hd = hyperbolic_distance(p1, p2),
+    
+    # Calculate the Complex NDVI interference between the two points
+    cndvi = (z1 - z2) / (z1 + z2)
+  ) %>%
+  # Extract the Real and Imaginary parts for X and Y plotting coordinates
+  mutate(
+    Re_cndvi = Re(cndvi),
+    Im_cndvi = Im(cndvi)
+  ) %>%
+  select(Re_cndvi, Im_cndvi, hd) %>%
+  omit_infinite()
+
+# -------------------------------------------------------------------------
+# 6. RENDERING & EXPORT
+# -------------------------------------------------------------------------
+# Build the plot
+
+p_fractal <- ggplot(plott, aes(x = Re_cndvi, y = Im_cndvi, color = Re(hd))) +
+  geom_point(size = 0.1, alpha = 0.4) + 
+  scale_color_gradientn(
+    colors = c(
+      "#08140C", # Deepest forest shadow 
+      "#1A261B", # Deep near-black forest green
+      "#122B18", # Dark pine
+      "#2A5E35", # Muted leaf green
+      "#52A147", # Vibrant chlorophyll green
+      "#99C945", # Fresh spring lime
+      "#FFE66D"  # Piercing sun-yellow
+    )
+  ) +
+  theme_void() + 
+  theme(
+    legend.position = "none",
+    plot.background = element_rect(fill = "black", color = NA),
+    panel.background = element_rect(fill = "black", color = NA)
+  )
+
+# Render crisp image using Cairo
+CairoPNG(
+  filename = "leaf_fractal_cairo.png", 
+  width = 3000,     
+  height = 3000, 
+  bg = "black"      
+)
+print(p_fractal) 
+dev.off()
